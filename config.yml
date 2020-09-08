@@ -1,0 +1,814 @@
+Meta-Data:
+  Name: "Crude Oil WTI (NYMEX)"
+  mode: "Evaluation"
+  Target: Close
+  Frequency: "Daily"
+  Open Time: '13:30'
+  Close Time: '20:00'
+  start_date: &start_date "2014-12-31"
+  split_date: &split_date "2020-02-01"
+Pipelines:
+  target: &tgt close
+  target1: &tgt1 Close
+  detrend: &detrend close(t+1)
+  trend_tgt: &t_tgt_t_1 trend_close(t+1)_5
+  detrend_tgt_1: &dt_tgt_t_1 de-trend_close(t+1)_5
+  Fetch Data Layer:
+    - name: USD-EUR forex pair OHLC
+      source: AlphaVantage
+      params:
+        retry: 6
+        function: TIME_SERIES_DAILY
+        symbol: EURUSD
+        outputsize: full
+        start_date: *start_date
+    - name: USD-YUAN forex pair OHLC
+      source: AlphaVantage
+      params:
+        retry: 6
+        function: TIME_SERIES_DAILY
+        symbol: USDCNY
+        outputsize: full
+        start_date: *start_date
+    - name: USD-TURK forex pair OHLC
+      source: AlphaVantage
+      params:
+        retry: 6
+        function: TIME_SERIES_DAILY
+        symbol: USDTRY
+        outputsize: full
+        start_date: *start_date
+    - name: USD-AED forex pair OHLC
+      source: AlphaVantage
+      params:
+        retry: 6
+        function: TIME_SERIES_DAILY
+        symbol: USDAED
+        outputsize: full
+        start_date: *start_date
+    - name: USD-IQD forex pair OHLC
+      source: AlphaVantage
+      params:
+        retry: 6
+        function: TIME_SERIES_DAILY
+        symbol: USDIQD
+        outputsize: full
+        start_date: *start_date
+    # - name: USD-EGP forex pair OHLC
+    #   source: AlphaVantage
+    #   params:
+    #     retry: 6
+    #     function: TIME_SERIES_DAILY
+    #     symbol: USDEGP
+    #     outputsize: full
+    #     start_date: *start_date
+    # - name: CNY-INR forex pair OHLC
+    #   source: AlphaVantage
+    #   params:
+    #     retry: 6
+    #     function: TIME_SERIES_DAILY
+    #     symbol: CNYINR
+    #     outputsize: full
+    #     start_date: *start_date
+    # - name: S&P index OHLC
+    #   source: AlphaVantage
+    #   params:
+    #     retry: 6
+    #     function: TIME_SERIES_DAILY
+    #     symbol: INX
+    #     outputsize: full
+    #     start_date: *start_date 
+    - name: Investing 
+      source: Investing
+      params:
+        retry: 6
+        start_date: '01/01/2017'
+        countries:
+          - 'united states'
+        codes: 
+          - 'Crude Oil WTI'
+    - name: FRED Macro
+      source: FRED
+      params:
+        start_date: *start_date
+        codes:
+        - T10Y2Y
+        - DFF
+        - T10YIE
+        - TEDRATE
+        - M1
+        - M2
+        - MABMM301USM189S
+        - USRECD
+        - RBUSBIS
+        - RNUSBIS
+        - USD3MTD156N
+        - DAAA
+        - VIXCLS
+        - SWPT
+        - HDTGPDUSQ163N
+    - name: GDELT Data
+      source: GDELT
+      params:
+        Date: *start_date
+        Country:
+          - 'US'
+        codes:
+          - '01'
+          - '02'
+          - '03'
+          - '04'
+          - '05'
+          - '06'
+          - '07'
+          - '08'
+          - '09'
+          - '10'
+          - '11'
+          - '12'
+          - '13'
+          - '14'
+          - '15'
+          - '16'
+          - '17'
+          - '18'
+          - '19'
+    - name: Quandl
+      source: Quandl
+      params:
+        retry: 6
+        start_date: '01/01/2001'
+        codes:
+         - ML/AAAEY
+         - ML/EEMCBI        
+         - ML/EMCBI
+         - AAII/AAII_SENTIMENT
+    - name: IMF
+      source: IMF
+      params:
+        start_date: *start_date
+        end_date: '2020-09-01'
+        series: FPOLM_PA
+        country: US
+        retry: 6
+        freq: A
+
+  Feature Generation Layer:
+    - function: sma
+      params: 
+        n: 5
+        target: *tgt
+    - function: sma
+      params: 
+        n: 10
+        target: *tgt
+    - function: sma
+      params: 
+        n: 15
+        target: *tgt
+    - function: sma
+      params: 
+        n: 20
+        target: *tgt
+    - function: ema
+      params: 
+        n: 5
+        target: *tgt
+    - function: ema
+      params: 
+        n: 10
+        target: *tgt
+    - function: ema
+      params: 
+        n: 15
+        target: *tgt
+    - function: ema
+      params: 
+        n: 20
+        target: *tgt
+    - function: rsi
+      params:
+        n: 14
+        target: *tgt
+    - function: macd
+      params:
+        target: *tgt
+    - function: bbands
+      params:
+        n: 14
+        target: *tgt
+    - function: time_series_function
+      params:
+        target: *tgt
+    - function: lag_gen
+      params:
+        lags: 5
+        target: *tgt
+    - function: forecast_horizon 
+      params:
+        horizon: 1
+        target: *tgt
+    - function: detrend
+      params:
+        period: 5
+        target: *detrend
+  Preprocessor Layer:
+    - name: Target
+      source: IdentityTransformer
+      params:
+        target: *detrend
+        split_date: *split_date
+    - name: Naive Forecaster
+      source: IdentityTransformer
+      params:
+        target: *detrend
+        split_date: *split_date
+    - name: MA
+      source: IdentityTransformer
+      params:
+        target: *t_tgt_t_1
+        split_date: *split_date
+    - name: LSTM
+      source: SequenceTransformer
+      params:
+        target: *dt_tgt_t_1
+        split_date: *split_date
+        val_size: 0
+        seq_len: 10
+        state_file_path: D:/Oil/Staging/Crude_Oil_WTI/LSTM_close_daily.ts
+    - name: GRU
+      source: SequenceTransformer
+      params:
+        target: *dt_tgt_t_1
+        split_date: *split_date
+        val_size: 0
+        seq_len: 10
+        state_file_path: D:/Oil/Staging/Crude_Oil_WTI/GRU_close_daily.ts
+    - name: BDLSTM
+      source: SequenceTransformer
+      params:
+        target: *dt_tgt_t_1
+        split_date: *split_date
+        val_size: 0
+        seq_len: 10
+        state_file_path: D:/Oil/Staging/Crude_Oil_WTI/BDLSTM_close_daily.ts
+    - name: SimpleRNNDense
+      source: SequenceTransformer
+      params:
+        target: *dt_tgt_t_1
+        split_date: *split_date
+        val_size: 0
+        seq_len: 10
+        state_file_path: D:/Oil/Staging/Crude_Oil_WTI/SimpleRNNDense_close_daily.ts
+    - name: LSTMDense
+      source: SequenceTransformer
+      params:
+        target: *dt_tgt_t_1
+        split_date: *split_date
+        val_size: 0
+        seq_len: 10
+        state_file_path: D:/Oil/Staging/Crude_Oil_WTI/LSTMDense_close_daily.ts
+    - name: GRUDense
+      source: SequenceTransformer
+      params:
+        target: *dt_tgt_t_1
+        split_date: *split_date
+        val_size: 0
+        seq_len: 10
+        state_file_path: D:/Oil/Staging/Crude_Oil_WTI/GRUDense_close_daily.ts
+    - name: SimpleRNNHiddenDense
+      source: SequenceTransformer
+      params:
+        target: *dt_tgt_t_1
+        split_date: *split_date
+        val_size: 0
+        seq_len: 10
+        state_file_path: D:/Oil/Staging/Crude_Oil_WTI/SimpleRNNHiddenDense_close_daily.ts
+    - name: LSTMHiddenDense
+      source: SequenceTransformer
+      params:
+        target: *dt_tgt_t_1
+        split_date: *split_date
+        val_size: 0
+        seq_len: 10
+        state_file_path: D:/Oil/Staging/Crude_Oil_WTI/LSTMHiddenDense_close_daily.ts
+    - name: GRUHiddenDense
+      source: SequenceTransformer
+      params:
+        target: *dt_tgt_t_1
+        split_date: *split_date
+        val_size: 0
+        seq_len: 10
+        state_file_path: D:/Oil/Staging/Crude_Oil_WTI/GRUDHiddenense_close_daily.ts
+    - name: DilatedConv
+      source: SequenceTransformer
+      params:
+        target: *dt_tgt_t_1
+        split_date: *split_date
+        val_size: 0
+        seq_len: 10
+        state_file_path: D:/Oil/Staging/Crude_Oil_WTI/DilatedConv_close_daily.ts
+    - name: ConvBDLSTM
+      source: SequenceTransformer
+      params:
+        target: *dt_tgt_t_1
+        split_date: *split_date
+        val_size: 0
+        seq_len: 10
+        state_file_path: D:/Oil/Staging/Crude_Oil_WTI/ConvBDLSTM_close_daily.ts
+    - name: CatBoost
+      source: StandardScalerTransformer
+      params:
+        target: *dt_tgt_t_1
+        split_date: *split_date
+        state_file_path: D:/Oil/Staging/Crude_Oil_WTI/CatBoost_close_daily.ts
+    - name: XGBoost
+      source: StandardScalerTransformer
+      params:
+        target: *dt_tgt_t_1
+        split_date: *split_date
+        state_file_path: D:/Oil/Staging/Crude_Oil_WTI/XGBoost_close_daily.ts
+    - name: VotingRegressor
+      source: StandardScalerTransformer
+      params:
+        target: *dt_tgt_t_1
+        split_date: *split_date
+        state_file_path: D:/Oil/Staging/Crude_Oil_WTI/VotingRegressor_close_daily.ts
+    - name: KNNRegressor
+      source: StandardScalerTransformer
+      params:
+        target: *dt_tgt_t_1
+        split_date: *split_date
+        state_file_path: D:/Oil/Staging/Crude_Oil_WTI/KNNRegressor_close_daily.ts
+    - name: SVR
+      source: StandardScalerTransformer
+      params:
+        target: *dt_tgt_t_1
+        split_date: *split_date
+        state_file_path: D:/Oil/Staging/Crude_Oil_WTI/SVR_close_daily.ts
+  Preprocessor Layer1:
+    - name: StackingRegressor
+      source: StandardScalerTransformer
+      params:
+        target: *tgt1
+        split_date: *split_date
+        state_file_path: D:/Oil/Staging/Crude_Oil_WTI/StackingRegressor_close_daily.ts
+
+  Model Training Layer:
+    - name: Target
+      source: linear_model
+      model: IndexerIdentity
+      params: {}
+    - name: Naive Forecaster
+      source: linear_model
+      model: IndexerNF
+      params:
+        shift: 1
+    - name: MA
+      source: linear_model
+      model: IndexerIdentity
+      params: {}
+    - name: LSTM
+      source: neural_network
+      model: IndexerLSTM
+      params:
+        architecture:
+          neurons:
+          - 128
+          - 128
+          - 128
+          dropouts:
+          - 0.2
+          - 0.2
+          r_dropouts:
+          - 0
+          - 0.2
+          - 0.2
+          activations:
+          - tanh
+          - tanh
+          - tanh
+          weights_path: D:/Oil/Staging/Crude_Oil_WTI/LSTM_close_monthly.h5
+        optimizer: 
+          loss: mse
+          optimizer: RMSprop 
+          #   name: RMSprop
+          #   lr: 0.001
+          #   rho: 0.9
+          metrics:
+            - mean_absolute_error
+        trainer:
+          epochs: 40
+          n_splits: 8
+          batch_size: 160
+          verbose: true
+          validate: false
+    - name: GRU
+      source: neural_network
+      model: IndexerGRU
+      params:
+        architecture:
+          neurons:
+          - 128
+          - 128
+          - 128
+          dropouts:
+          - 0.2
+          - 0.2
+          activations:
+          - tanh
+          - tanh
+          - tanh
+          weights_path: D:/Oil/Staging/Crude_Oil_WTI/GRU_close_daily.h5
+        optimizer: 
+          loss: mse
+          optimizer: RMSprop 
+          #   name: RMSprop
+          #   lr: 0.001
+          #   rho: 0.9
+          metrics:
+            - mean_absolute_error
+        trainer:
+          epochs: 40
+          n_splits: 7
+          batch_size: 250
+          verbose: true
+          validate: false
+    - name: BDLSTM
+      source: neural_network
+      model: IndexerBDLSTM
+      params:
+        architecture:
+          neurons:
+          - 128
+          - 128
+          - 128
+          dropouts:
+          - 0.2
+          - 0.2
+          activations:
+          - tanh
+          - tanh
+          - tanh
+          weights_path: D:/Oil/Staging/Crude_Oil_WTI/BDLSTM_close_daily.h5
+        optimizer: 
+          loss: mse
+          optimizer: RMSprop 
+          #   name: RMSprop
+          #   lr: 0.001
+          #   rho: 0.9
+          metrics:
+            - mean_absolute_error
+        trainer:
+          epochs: 40
+          n_splits: 8
+          batch_size: 170
+          verbose: true
+          validate: false
+    - name: SimpleRNNDense
+      source: neural_network
+      model: IndexerRNNDense
+      params:
+        architecture:
+          neurons: 50
+          dropouts:
+          - 0.3
+          - 0.3
+          activations:
+          - relu
+          - relu
+          dense_units:
+          - 20
+          - 30
+          output_shape: 1
+          cell: SimpleRNN
+          weights_path: D:/Oil/Staging/Crude_Oil_WTI/SimpleRNNDense_close_daily.h5
+        optimizer:
+          loss: mse
+          optimizer:
+            name: RMSprop
+            # lr: 0.001
+            # rho: 0.9
+          metrics:
+            - mean_absolute_error
+        trainer:
+          epochs: 10
+          n_splits: 8
+          batch_size: 300
+          verbose: true
+          validate: false
+    - name: LSTMDense
+      source: neural_network
+      model: IndexerRNNDense
+      params:
+        architecture:
+          neurons: 50
+          dropouts:
+          - 0.3
+          - 0.3
+          activations:
+          - relu
+          - relu
+          dense_units:
+          - 20
+          - 30
+          output_shape: 1
+          cell: LSTM
+          weights_path: D:/Oil/Staging/Crude_Oil_WTI/LSTMDense_close_daily.h5
+        optimizer:
+          loss: mse
+          optimizer:
+            name: RMSprop
+#             lr: 0.001
+#             rho: 0.9
+          metrics:
+            - mean_absolute_error
+        trainer:
+          epochs: 10
+          n_splits: 8
+          batch_size: 300
+          verbose: true
+          validate: false
+    - name: GRUDense
+      source: neural_network
+      model: IndexerRNNDense
+      params:
+        architecture:
+          neurons: 50
+          dropouts:
+          - 0.3
+          - 0.3
+          activations:
+          - relu
+          - relu
+          dense_units:
+          - 20
+          - 30
+          output_shape: 1
+          cell: GRU
+          weights_path: D:/Oil/Staging/Crude_Oil_WTI/GRUDense_close_daily.h5
+        optimizer:
+          loss: mse
+          optimizer:
+            name: RMSprop
+            # lr: 0.001
+            # rho: 0.9
+          metrics:
+            - mean_absolute_error
+        trainer:
+          epochs: 10
+          n_splits: 8
+          batch_size: 300
+          verbose: true
+          validate: false
+    - name: SimpleRNNHiddenDense
+      source: neural_network
+      model: IndexerRNNHiddenDense
+      params:
+        architecture:
+          neurons: 40
+          stack_size : 2
+          dropouts:
+          - 0.3
+          - 0.3
+          activations:
+          - relu
+          - relu
+          dense_units :
+          - 20
+          - 30
+          output_shape: 1
+          cell: SimpleRNN
+          weights_path: D:/Oil/Staging/Crude_Oil_WTI/SimpleRNNHiddenDense_close_daily.h5
+        optimizer:
+          loss: mae
+          optimizer:
+            name: RMSprop
+#             lr: 0.001
+#             rho: 0.9
+          metrics:
+            - mean_absolute_error
+        trainer:
+          epochs: 10
+          n_splits: 8
+          batch_size: 300
+          verbose: true
+          validate: false
+    - name: LSTMHiddenDense
+      source: neural_network
+      model: IndexerRNNHiddenDense
+      params:
+        architecture:
+          neurons: 40
+          stack_size : 2
+          dropouts:
+          - 0.3
+          - 0.3
+          activations:
+          - relu
+          - relu
+          dense_units :
+          - 20
+          - 30
+          output_shape: 1
+          cell: LSTM
+          weights_path: D:/Oil/Staging/Crude_Oil_WTI/LSTMHiddenDense_close_daily.h5
+        optimizer:
+          loss: mae
+          optimizer:
+            name: RMSprop
+#             lr: 0.001
+#             rho: 0.9
+          metrics:
+            - mean_absolute_error
+        trainer:
+          epochs: 10
+          n_splits: 8
+          batch_size: 300
+          verbose: true
+          validate: false
+    - name: GRUHiddenDense
+      source: neural_network
+      model: IndexerRNNHiddenDense
+      params:
+        architecture:
+          neurons: 40
+          stack_size : 2
+          dropouts:
+          - 0.3
+          - 0.3
+          activations:
+          - relu
+          - relu
+          dense_units :
+          - 20
+          - 30
+          output_shape: 1
+          cell: GRU
+          weights_path: D:/Oil/Staging/Crude_Oil_WTI/GRUHiddenDense_close_daily.h5
+        optimizer:
+          loss: mae
+          optimizer:
+            name: RMSprop
+#             lr: 0.001
+#             rho: 0.9
+          metrics:
+            - mean_absolute_error
+        trainer:
+          epochs: 10
+          n_splits: 8
+          batch_size: 300
+          verbose: true
+          validate: false
+    - name: DilatedConv
+      source: neural_network
+      model: IndexerDilatedConv
+      params:
+        architecture:
+          neurons: 8
+          dropouts:
+          - 0.3
+          activations:
+          - relu
+          n_filters : 32
+          filter_width: 2
+          weights_path: D:/Oil/Staging/Crude_Oil_WTI/DilatedConv_close_daily.h5
+        optimizer:
+          loss: mae
+          optimizer:
+            name: RMSprop
+            lr: 0.001
+            rho: 0.9
+          metrics:
+            - mean_absolute_error
+        trainer:
+          epochs: 10
+          n_splits: 8
+          batch_size: 300
+          verbose: true
+          validate: false
+    - name: ConvBDLSTM
+      source: neural_network
+      model: IndexerConvBDLSTM
+      params:
+        architecture:
+          neurons: 25
+          dropouts:
+          - 0.3
+          activations:
+          - relu
+          network_width: 3
+          conv_depth : 3
+          kernel_size : 1
+          num_lstmunits : 200
+          weights_path: D:/Oil/Staging/Crude_Oil_WTI/ConvBDLSTM_close_daily.h5
+        optimizer:
+          loss: mae
+          optimizer:
+            name: RMSprop
+            lr: 0.001
+            rho: 0.9
+          metrics:
+            - mean_absolute_error
+        trainer:
+          epochs: 10
+          n_splits: 8
+          batch_size: 300
+          verbose: true
+          validate: false
+    - name: CatBoost
+      source: ensembles
+      model: IndexerCatBoost
+      params:
+        architecture:
+          iterations: 2000
+          depth: 3
+          learning_rate: 0.1
+          weights_path: D:/Oil/Staging/Crude_Oil_WTI/CatBoost_close_daily.pkl
+        trainer:
+          n_splits: 5
+          verbose: True
+    - name: XGBoost
+      source: ensembles
+      model: IndexerXGBoost
+      params:
+        architecture:
+          n_estimators: 1000
+          max_depth: 10
+          learning_rate: 0.01
+          min_child_weight: 10
+          reg_alpha: 0
+          weights_path: D:/Oil/Staging/Crude_Oil_WTI/XGBoost_close_daily.pkl
+        trainer:
+          n_splits: 5
+          verbose: True
+    - name: VotingRegressor
+      source: ensembles
+      model: IndexerVotingRegressor
+      params:
+        architecture:
+          min_samples_split: 5
+          n_estimators: 100
+          max_features: 'auto'
+          weights_path: D:/Oil/Staging/Crude_Oil_WTI/VotingRegressor_close_daily.pkl
+        trainer:
+          n_splits: 5
+          verbose: True
+    - name: KNNRegressor
+      source: new_models
+      model: IndexerKNNRegressor
+      params:
+        architecture:
+          n_neighbors: 2
+          weights_path: D:/Oil/Staging/Crude_Oil_WTI/knn_close_daily.pkl
+        trainer:
+          n_splits: 5
+          verbose: True
+    - name: SVR
+      source: new_models
+      model: IndexerSVR
+      params:
+        architecture:
+          kernel: 'poly' 
+          weights_path: D:/Oil/Staging/Crude_Oil_WTI/svr_close_daily.pkl
+        trainer:
+          n_splits: 5
+          verbose: True
+  Model Training Layer1:
+    - name: StackingRegressor
+      source: ensembles
+      model: IndexerStackingRegressor
+      params:
+        architecture:
+          n_estimators: 50
+          random_state: 42
+          weights_path: D:/Oil/Staging/Crude_Oil_WTI/StackingRegressor_close_daily.pkl
+        trainer:
+          n_splits: 5
+          verbose: True
+  PostProcessing Layer:
+    target: MA
+    detrended-models:
+      # - ARIMA
+      # - MLP
+      - LSTM
+      - GRU
+      - BDLSTM
+      - SimpleRNNDense
+      - LSTMDense
+      - GRUDense
+      - SimpleRNNHiddenDense
+      - LSTMHiddenDense
+      - GRUHiddenDense
+      - DilatedConv
+      - ConvBDLSTM
+      - CatBoost
+      - XGBoost
+      - VotingRegressor
+      - KNNRegressor
+      - SVR
+  
+
+Postgress:
+  IP: 35.197.61.54/prediction-generator
+  Port: ''
